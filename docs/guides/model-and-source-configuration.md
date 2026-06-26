@@ -396,9 +396,12 @@ chatterlang_script --script 'INPUT FROM prompt[data="Hi"] | llmPrompt[model=$def
 ### 5. Pipe API with config fallback
 
 ```python
+import os
 from talkpipe.llm.chat import LLMPrompt
 
 # Uses default_model_name / default_model_source from config when omitted
+os.environ["TALKPIPE_default_model_name"] = "llama3.2"
+os.environ["TALKPIPE_default_model_source"] = "ollama"
 segment = LLMPrompt(system_prompt="You are helpful.")
 ```
 

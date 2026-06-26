@@ -1,5 +1,6 @@
 """Extract and run Python code examples from markdown documentation."""
 
+import os
 import re
 import subprocess  # nosec B404 - Required to run extracted doc examples script
 import sys
@@ -22,6 +23,7 @@ _UNAVAILABLE_REQUIREMENT_REASONS = {
     "anthropic": "requires Anthropic credentials, but they are not available",
     "model2vec": "requires a cached/downloadable model2vec model, but it is not available",
     "mongodb": "requires MongoDB, but it is not available",
+    "network": "requires network access, but it is not available",
 }
 
 
@@ -94,6 +96,14 @@ def classify_unavailable_example_exception(exc: BaseException) -> str | None:
         or exc_name in {"serverselectiontimeouterror", "autoreconnect"}
     ):
         return "mongodb"
+    if (
+        "failed to download url" in message
+        or "httpconnectionpool" in message
+        or "httpsconnectionpool" in message
+        or "nameresolutionerror" in message
+        or "no address associated with hostname" in message
+    ):
+        return "network"
     return None
 
 
@@ -152,12 +162,15 @@ def run_example(location: str, code: str) -> tuple[bool, BaseException | None]:
     """
     io_module = None
     original_prompt = None
+    env_snapshot = {key: value for key, value in os.environ.items() if key.startswith("TALKPIPE_")}
     try:
         import talkpipe.pipe.io as _io
+        from talkpipe.util.config import reset_config
 
         io_module = _io
         original_prompt = _io.Prompt
         _io.Prompt = lambda *args, **kwargs: _io.echo(data="Hello, world!")
+        reset_config()
     except ImportError:
         pass
 
@@ -170,6 +183,18 @@ def run_example(location: str, code: str) -> tuple[bool, BaseException | None]:
     finally:
         if io_module is not None and original_prompt is not None:
             io_module.Prompt = original_prompt
+        current_keys = [key for key in os.environ if key.startswith("TALKPIPE_")]
+        for key in current_keys:
+            if key not in env_snapshot:
+                del os.environ[key]
+        for key, value in env_snapshot.items():
+            os.environ[key] = value
+        try:
+            from talkpipe.util.config import reset_config
+
+            reset_config()
+        except ImportError:
+            pass
 
 
 def generate_runner_script(examples: list[tuple[Path, int, str]], output_path: Path) -> None:

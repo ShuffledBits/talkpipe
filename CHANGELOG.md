@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Improved documentation example execution so pytest and `run_doc_examples` now skip only the
+  examples whose external dependencies are unavailable (for example Ollama, OpenAI, Anthropic,
+  MongoDB, or uncached `model2vec` downloads) instead of skipping or failing the entire run.
+
 ## v0.12.2
 - Added batch embedding support: embedding adapters expose `execute_one` and `execute_batch`;
   `execute` remains as a deprecated alias for `execute_one` (removed in 1.0). `llmEmbed` extends

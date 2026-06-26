@@ -1,5 +1,6 @@
 """Pytest tests for documentation examples extracted from markdown."""
 
+import os
 import shutil
 
 import pytest
@@ -73,6 +74,20 @@ def test_classify_unavailable_example_exception():
         == "model2vec"
     )
     assert classify_unavailable_example_exception(RuntimeError("boom")) is None
+
+
+def test_run_example_restores_talkpipe_env(monkeypatch: pytest.MonkeyPatch):
+    """Examples should not leak TALKPIPE_* environment changes into later examples."""
+    monkeypatch.delenv("TALKPIPE_DOC_EXAMPLE_TEST", raising=False)
+
+    success, exc = run_example(
+        "memory-test",
+        'import os\nos.environ["TALKPIPE_DOC_EXAMPLE_TEST"] = "set-in-example"',
+    )
+
+    assert success is True
+    assert exc is None
+    assert "TALKPIPE_DOC_EXAMPLE_TEST" not in os.environ
 
 
 @pytest.fixture(autouse=True)
