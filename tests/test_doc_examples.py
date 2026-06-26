@@ -5,7 +5,6 @@ import shutil
 
 import pytest
 from pathlib import Path
-from huggingface_hub.errors import LocalEntryNotFoundError
 
 from talkpipe.app.doc_examples import (
     classify_unavailable_example_exception,
@@ -57,6 +56,8 @@ def test_detect_example_requirements():
 
 def test_classify_unavailable_example_exception():
     """Recognize dependency-availability failures that should be skipped, not failed."""
+    from huggingface_hub.errors import LocalEntryNotFoundError
+
     assert (
         classify_unavailable_example_exception(
             ConnectionError(
