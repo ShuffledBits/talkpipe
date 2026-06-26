@@ -185,8 +185,7 @@ def run_example(location: str, code: str) -> tuple[bool, BaseException | None]:
             io_module.Prompt = original_prompt
         current_keys = [key for key in os.environ if key.startswith("TALKPIPE_")]
         for key in current_keys:
-            if key not in env_snapshot:
-                del os.environ[key]
+            del os.environ[key]
         for key, value in env_snapshot.items():
             os.environ[key] = value
         try:

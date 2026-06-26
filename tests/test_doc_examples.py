@@ -109,7 +109,7 @@ def _safe_test_id(path: Path, line_num: int) -> str:
     return f"{stem}-{line_num}"
 
 
-def _example_marks(config: pytest.Config, code: str) -> list[object]:
+def _example_marks(config: pytest.Config, code: str) -> list[pytest.MarkDecorator]:
     """Mark examples that depend on unavailable external services."""
     requirements = detect_example_requirements(code)
     marks: list[object] = []
@@ -123,8 +123,10 @@ def _example_marks(config: pytest.Config, code: str) -> list[object]:
 
     if "ollama" in requirements:
         marks.append(pytest.mark.requires_ollama)
+        if not availability["ollama"]:
+            marks.append(pytest.mark.skip(reason=unavailable_example_reason("ollama")))
 
-    for requirement in sorted(requirements):
+    for requirement in sorted(requirements - {"ollama"}):
         if requirement in availability and not availability[requirement]:
             marks.append(pytest.mark.skip(reason=unavailable_example_reason(requirement)))
 
