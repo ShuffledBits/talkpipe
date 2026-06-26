@@ -114,6 +114,16 @@ def unavailable_example_reason(requirement: str) -> str:
     )
 
 
+def _reset_talkpipe_config() -> None:
+    """Reset cached TalkPipe config if the config module is importable."""
+    try:
+        from talkpipe.util.config import reset_config
+
+        reset_config()
+    except ImportError:
+        pass
+
+
 def _normalize_indentation(code: str) -> str:
     """Strip common leading indentation while preserving relative indentation."""
     lines = code.split("\n")
@@ -165,12 +175,11 @@ def run_example(location: str, code: str) -> tuple[bool, BaseException | None]:
     env_snapshot = {key: value for key, value in os.environ.items() if key.startswith("TALKPIPE_")}
     try:
         import talkpipe.pipe.io as _io
-        from talkpipe.util.config import reset_config
 
         io_module = _io
         original_prompt = _io.Prompt
         _io.Prompt = lambda *args, **kwargs: _io.echo(data="Hello, world!")
-        reset_config()
+        _reset_talkpipe_config()
     except ImportError:
         pass
 
@@ -183,17 +192,13 @@ def run_example(location: str, code: str) -> tuple[bool, BaseException | None]:
     finally:
         if io_module is not None and original_prompt is not None:
             io_module.Prompt = original_prompt
+        # Reset all TalkPipe-scoped env vars, then restore the exact pre-example snapshot.
         current_keys = [key for key in os.environ if key.startswith("TALKPIPE_")]
         for key in current_keys:
             del os.environ[key]
         for key, value in env_snapshot.items():
             os.environ[key] = value
-        try:
-            from talkpipe.util.config import reset_config
-
-            reset_config()
-        except ImportError:
-            pass
+        _reset_talkpipe_config()
 
 
 def generate_runner_script(examples: list[tuple[Path, int, str]], output_path: Path) -> None:

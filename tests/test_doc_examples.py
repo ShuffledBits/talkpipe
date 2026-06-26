@@ -112,7 +112,7 @@ def _safe_test_id(path: Path, line_num: int) -> str:
 def _example_marks(config: pytest.Config, code: str) -> list[pytest.MarkDecorator]:
     """Mark examples that depend on unavailable external services."""
     requirements = detect_example_requirements(code)
-    marks: list[object] = []
+    marks: list[pytest.MarkDecorator] = []
 
     availability = {
         "ollama": getattr(config, "is_ollama_available", False),
