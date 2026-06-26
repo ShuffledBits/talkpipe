@@ -4,8 +4,15 @@ import shutil
 
 import pytest
 from pathlib import Path
+from huggingface_hub.errors import LocalEntryNotFoundError
 
-from talkpipe.app.doc_examples import extract_all_examples, run_example
+from talkpipe.app.doc_examples import (
+    classify_unavailable_example_exception,
+    detect_example_requirements,
+    extract_all_examples,
+    run_example,
+    unavailable_example_reason,
+)
 
 # Project root: tests/ -> parent
 _project_root = Path(__file__).resolve().parent.parent
@@ -38,6 +45,36 @@ def test_is_safe_to_delete():
     assert _is_safe_to_delete(root, "../etc") is False
 
 
+def test_detect_example_requirements():
+    """Classify common provider-dependent doc examples so offline examples can still run."""
+    assert detect_example_requirements('| llmPrompt[source="ollama"]') == {"ollama"}
+    assert detect_example_requirements('| llmPrompt[source="openai"]') == {"openai"}
+    assert detect_example_requirements('| llmEmbed[source="model2vec"]') == {"model2vec"}
+    assert detect_example_requirements("| mongoSearch") == {"mongodb"}
+    assert detect_example_requirements('print("hello")') == set()
+
+
+def test_classify_unavailable_example_exception():
+    """Recognize dependency-availability failures that should be skipped, not failed."""
+    assert (
+        classify_unavailable_example_exception(
+            ConnectionError(
+                "Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible."
+            )
+        )
+        == "ollama"
+    )
+    assert (
+        classify_unavailable_example_exception(
+            LocalEntryNotFoundError(
+                "An error happened while trying to locate the files on the Hub, and we cannot find the appropriate snapshot folder for the specified revision on the local disk."
+            )
+        )
+        == "model2vec"
+    )
+    assert classify_unavailable_example_exception(RuntimeError("boom")) is None
+
+
 @pytest.fixture(autouse=True)
 def _cleanup_doc_example_artifacts():
     """Remove artifacts created by doc examples (e.g. vector DBs) after each test."""
@@ -57,22 +94,54 @@ def _safe_test_id(path: Path, line_num: int) -> str:
     return f"{stem}-{line_num}"
 
 
+def _example_marks(config: pytest.Config, code: str) -> list[object]:
+    """Mark examples that depend on unavailable external services."""
+    requirements = detect_example_requirements(code)
+    marks: list[object] = []
+
+    availability = {
+        "ollama": getattr(config, "is_ollama_available", False),
+        "openai": getattr(config, "is_openai_available", False),
+        "anthropic": getattr(config, "is_anthropic_available", False),
+        "mongodb": getattr(config, "is_mongodb_available", False),
+    }
+
+    if "ollama" in requirements:
+        marks.append(pytest.mark.requires_ollama)
+
+    for requirement in sorted(requirements):
+        if requirement in availability and not availability[requirement]:
+            marks.append(pytest.mark.skip(reason=unavailable_example_reason(requirement)))
+
+    return marks
+
+
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Collect doc examples at collection time so new examples are picked up after doc edits."""
     if "path" in metafunc.fixturenames and "line_num" in metafunc.fixturenames and "code" in metafunc.fixturenames:
         examples = extract_all_examples(_project_root)
         metafunc.parametrize(
             "path,line_num,code",
-            examples,
-            ids=[_safe_test_id(path, line_num) for path, line_num, _ in examples],
+            [
+                pytest.param(
+                    path,
+                    line_num,
+                    code,
+                    id=_safe_test_id(path, line_num),
+                    marks=_example_marks(metafunc.config, code),
+                )
+                for path, line_num, code in examples
+            ],
         )
 
 
-@pytest.mark.requires_ollama
-def test_doc_example(requires_ollama,path: Path, line_num: int, code: str) -> None:
-    """Run a documentation example. Requires Ollama for LLM examples."""
+def test_doc_example(path: Path, line_num: int, code: str) -> None:
+    """Run a documentation example, skipping only examples with unavailable dependencies."""
     location = f"{path}:{line_num}"
     success, exc = run_example(location, code)
     if not success and exc is not None:
+        requirement = classify_unavailable_example_exception(exc)
+        if requirement is not None:
+            pytest.skip(unavailable_example_reason(requirement))
         raise exc from None
     assert success, f"Example {location} failed"
