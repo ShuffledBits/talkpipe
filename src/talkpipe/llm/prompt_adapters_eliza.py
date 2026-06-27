@@ -55,6 +55,8 @@ class ElizaPromptAdapter(AbstractLLMPromptAdapter):
         self._messages.append({"role": "user", "content": combined})
         self._compact_context_if_needed()
         response_text = self._compose_response(text, image_count=image_count)
+        if image_count and "image" not in response_text.lower():
+            response_text = f"{response_text} Also, I noticed {image_count} image(s) attached."
         self._record_assistant_response(response_text)
         return self._coerce_output(response_text, text)
 
