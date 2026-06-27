@@ -1,5 +1,11 @@
 from typing import Dict, Type, TypeVar, List
-from .prompt_adapters import AbstractLLMPromptAdapter, OllamaPromptAdapter, OpenAIPromptAdapter, AnthropicPromptAdapter
+from .prompt_adapters import (
+    AbstractLLMPromptAdapter,
+    AnthropicPromptAdapter,
+    ElizaPromptAdapter,
+    OllamaPromptAdapter,
+    OpenAIPromptAdapter,
+)
 from .embedding_adapters import AbstractEmbeddingAdapter, OllamaEmbedderAdapter
 from .embedding_adapters_openai import OpenAIEmbeddingAdapter
 from .embedding_adapters_model2vec import Model2VecEmbeddingAdapter
@@ -10,7 +16,8 @@ T_EMBEDDINGADAPTER = TypeVar("T_EMBEDDINGADAPTER", bound=AbstractEmbeddingAdapte
 _promptAdapter:Dict[str, Type[T_PROMPTADAPTER]] = {
     "ollama": OllamaPromptAdapter,
     "openai": OpenAIPromptAdapter,
-    "anthropic": AnthropicPromptAdapter
+    "anthropic": AnthropicPromptAdapter,
+    "eliza": ElizaPromptAdapter,
 }
 
 def registerPromptAdapter(name:str, promptAdapter:Type[T_PROMPTADAPTER]):
@@ -36,5 +43,4 @@ def getEmbeddingAdapter(name:str)->Type[T_EMBEDDINGADAPTER]:
 
 def getEmbeddingSources()->List[str]:
     return list(_embeddingAdapter.keys())
-
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added `ElizaPromptAdapter` and source `eliza`, a local Eliza-style prompt adapter that
+  implements execute, multimodal execute_turn, availability checks, and no-context completion
+  without external LLM dependencies. Added focused unit tests for conversation behavior,
+  single-turn memory clearing, multimodal input handling, and structured output coercion.
 - Fixed single-turn (`multi_turn=False`) prompt-adapter state handling so `_summary_message`
   is cleared after each response and does not leak conversation memory between calls.
 
