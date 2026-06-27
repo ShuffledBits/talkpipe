@@ -29,7 +29,7 @@ class LLMVisionPrompt(AbstractSegment):
         self,
         image_field: Annotated[str, "Item field containing the image path, URL, bytes, or ImageResult"],
         model: Annotated[Optional[str], "The name of the model to chat with"] = None,
-        source: Annotated[Optional[str], "The source of the model (ollama, openai, or anthropic)"] = None,
+        source: Annotated[Optional[str], "The source of the model (ollama, openai, anthropic, or eliza)"] = None,
         system_prompt: Annotated[Optional[str], "The system prompt for the model"] = "You are a helpful assistant.",
         context_field: Annotated[Optional[str], "Optional item field for text context"] = "",
         prompt: Annotated[str, "Fixed prompt when prompt_field is not used"] = DEFAULT_VISION_PROMPT,
