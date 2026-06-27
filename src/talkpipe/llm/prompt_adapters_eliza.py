@@ -7,6 +7,11 @@ from pydantic import BaseModel
 from .content import UserTurn, user_turn_text
 from .prompt_adapter_base import AbstractLLMPromptAdapter
 
+HIGH_SCORE = 8
+LOW_SCORE = 3
+HIGH_CONFIDENCE = 0.8
+LOW_CONFIDENCE = 0.3
+
 
 class ElizaPromptAdapter(AbstractLLMPromptAdapter):
     """Deterministic, local Eliza-style adapter for testing without external LLMs."""
@@ -184,9 +189,15 @@ class ElizaPromptAdapter(AbstractLLMPromptAdapter):
             if annotation is bool:
                 payload[field_name] = not bool(re.search(r"\b(no|not|never|can't|cannot)\b", prompt_text.lower()))
             elif annotation is int:
-                payload[field_name] = 8 if re.search(r"\b(great|good|excellent|love|works?)\b", prompt_text.lower()) else 3
+                payload[field_name] = (
+                    HIGH_SCORE if re.search(r"\b(great|good|excellent|love|works?)\b", prompt_text.lower()) else LOW_SCORE
+                )
             elif annotation is float:
-                payload[field_name] = 0.8 if re.search(r"\b(great|good|excellent|love|works?)\b", prompt_text.lower()) else 0.3
+                payload[field_name] = (
+                    HIGH_CONFIDENCE
+                    if re.search(r"\b(great|good|excellent|love|works?)\b", prompt_text.lower())
+                    else LOW_CONFIDENCE
+                )
             elif annotation is list or get_origin(annotation) is list:
                 tokens = re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", prompt_text.lower())
                 payload[field_name] = list(dict.fromkeys(tokens[:5])) or ["talkpipe", "eliza"]
@@ -201,8 +212,6 @@ class ElizaPromptAdapter(AbstractLLMPromptAdapter):
         origin = get_origin(annotation)
         if origin in {Union, types.UnionType}:
             candidates = [arg for arg in get_args(annotation) if arg is not type(None)]
-            if len(candidates) == 1:
-                return candidates[0]
             if candidates:
                 return candidates[0]
         return annotation
