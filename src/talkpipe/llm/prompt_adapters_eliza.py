@@ -45,6 +45,9 @@ class ElizaPromptAdapter(AbstractLLMPromptAdapter):
         self._compact_context_if_needed()
         response_text = self._compose_response(prompt)
         self._record_assistant_response(response_text)
+        if not self._multi_turn:
+            self._messages = []
+            self._summary_message = None
         return self._coerce_output(response_text, prompt)
 
     def execute_turn(self, user_turn: UserTurn):
@@ -59,6 +62,9 @@ class ElizaPromptAdapter(AbstractLLMPromptAdapter):
         if image_count and "image" not in response_text.lower():
             response_text = f"{response_text} Also, I noticed {image_count} image(s) attached."
         self._record_assistant_response(response_text)
+        if not self._multi_turn:
+            self._messages = []
+            self._summary_message = None
         return self._coerce_output(response_text, text)
 
     def complete_text_without_context(
