@@ -1,4 +1,5 @@
 import re
+import types
 from typing import Optional, Union, get_args, get_origin
 
 from pydantic import BaseModel
@@ -192,8 +193,10 @@ class ElizaPromptAdapter(AbstractLLMPromptAdapter):
 
     def _resolve_annotation(self, annotation):
         origin = get_origin(annotation)
-        if origin is Union:
+        if origin in {Union, types.UnionType}:
             candidates = [arg for arg in get_args(annotation) if arg is not type(None)]
             if len(candidates) == 1:
+                return candidates[0]
+            if candidates:
                 return candidates[0]
         return annotation

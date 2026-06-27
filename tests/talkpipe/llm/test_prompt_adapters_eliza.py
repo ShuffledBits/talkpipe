@@ -70,6 +70,10 @@ class ExtractedTerms(BaseModel):
     terms: list[str]
 
 
+class UnionValue(BaseModel):
+    value: int | str
+
+
 def test_eliza_output_format_returns_pydantic_models():
     score_adapter = ElizaPromptAdapter("eliza-v1", output_format=ScoreAnswer)
     binary_adapter = ElizaPromptAdapter("eliza-v1", output_format=BinaryAnswer)
@@ -89,6 +93,13 @@ def test_eliza_output_format_returns_pydantic_models():
     assert binary_true_result.answer is True
     assert isinstance(terms_result, ExtractedTerms)
     assert terms_result.terms
+
+
+def test_eliza_output_format_handles_multi_type_union_fields():
+    adapter = ElizaPromptAdapter("eliza-v1", output_format=UnionValue)
+    result = adapter.execute("This works great")
+    assert isinstance(result, UnionValue)
+    assert isinstance(result.value, int)
 
 
 def test_eliza_execute_turn_with_text_only_user_turn():
