@@ -76,14 +76,17 @@ def test_eliza_output_format_returns_pydantic_models():
     terms_adapter = ElizaPromptAdapter("eliza-v1", output_format=ExtractedTerms)
 
     score_result = score_adapter.execute("This works great")
-    binary_result = binary_adapter.execute("This is not working")
+    binary_false_result = binary_adapter.execute("This is not working")
+    binary_true_result = binary_adapter.execute("This is working well")
     terms_result = terms_adapter.execute("Extract terms from talkpipe eliza adapter tests")
 
     assert isinstance(score_result, ScoreAnswer)
     assert score_result.explanation
     assert isinstance(score_result.score, int)
-    assert isinstance(binary_result, BinaryAnswer)
-    assert binary_result.answer is False
+    assert isinstance(binary_false_result, BinaryAnswer)
+    assert binary_false_result.answer is False
+    assert isinstance(binary_true_result, BinaryAnswer)
+    assert binary_true_result.answer is True
     assert isinstance(terms_result, ExtractedTerms)
     assert terms_result.terms
 
